@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.contrib.auth import get_user_model
-from .serializers import UserRegistrationSerializer, UserSerializer, UserUpgradeSerializer
+from .serializers import UserRegistrationSerializer, UserSerializer, UserUpgradeSerializer, UserUpdateSerializer
 from rest_framework.authtoken.models import Token
 from .serializers import UserLoginSerializer
 
@@ -127,3 +127,38 @@ def custom_login(request):
             'is_superuser': user.is_superuser
         })
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def user_detail(request, pk):
+    """User detail view allowing superusers to update/delete any user"""
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # Allow any authenticated user to view
+    if request.method == 'GET':
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+    # Only superuser can update/delete
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only superusers can modify users"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if request.method == 'PUT':
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

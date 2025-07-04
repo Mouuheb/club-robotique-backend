@@ -67,3 +67,27 @@ class UserLoginSerializer(serializers.Serializer):
         else:
             raise serializers.ValidationError("Must include 'email' and 'password'.")
         return data       
+    
+class UserUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, 
+        required=False,
+        allow_blank=True,
+        style={'input_type': 'password'}
+    )
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'password', 
+                 'description', 'label', 'xp', 'level', 'is_staff', 'is_superuser']
+        extra_kwargs = {
+            'email': {'required': False}
+        }
+    
+    def update(self, instance, validated_data):
+        # Handle password separately
+        password = validated_data.pop('password', None)
+        if password and password.strip() != "":
+            instance.set_password(password)
+        
+        return super().update(instance, validated_data)
