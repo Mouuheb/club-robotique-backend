@@ -1,4 +1,4 @@
-../register/ --> create user
+../register/ --> create user <br>
 ../users/ --> git all users list
 ../users/<int:user_id>/upgrade/ --> update user to staff or admin
 ../login/ --> login
